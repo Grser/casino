@@ -1,7 +1,39 @@
 const express = require('express');
-const { createUserWithWallet } = require('../services/users.service');
+const {
+  createUserWithWallet,
+  listUsers,
+  authenticateUser
+} = require('../services/users.service');
 
 const router = express.Router();
+
+router.get('/users', async (req, res, next) => {
+  try {
+    const users = await listUsers();
+    return res.json(users);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post('/users/login', async (req, res, next) => {
+  try {
+    const { usernameOrEmail, password } = req.body;
+
+    if (!usernameOrEmail || !password) {
+      return res.status(400).json({ error: 'MISSING_REQUIRED_FIELDS' });
+    }
+
+    const user = await authenticateUser({ usernameOrEmail, password });
+    return res.json(user);
+  } catch (error) {
+    if (error.message === 'INVALID_CREDENTIALS') {
+      return res.status(401).json({ error: error.message });
+    }
+
+    return next(error);
+  }
+});
 
 router.post('/users', async (req, res, next) => {
   try {
