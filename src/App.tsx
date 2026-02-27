@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import type { FormEvent } from 'react'
 import './App.css'
 
 type GameVariant = {
-  id: number
+  id: string
   name: string
   minBetCents: number
   maxBetCents: number
@@ -10,7 +11,7 @@ type GameVariant = {
 }
 
 type Game = {
-  id: number
+  id: string
   code: string
   name: string
   type: string
@@ -18,12 +19,21 @@ type Game = {
 }
 
 type Wallet = {
-  userId: number
+  userId: string
   balanceCents: number
   currency: string
 }
 
+type RegistrationResult = {
+  id: string
+  username: string
+  email: string
+  countryCode: string
+  wallet: Wallet
+}
+
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+const DEMO_USER_ID = '11111111-1111-1111-1111-111111111111'
 
 const tabs = ['Lobby', 'En vivo', 'Mesa', 'Cartas', 'Promociones', 'Historial']
 
@@ -40,6 +50,10 @@ function App() {
   const [activeTab, setActiveTab] = useState(tabs[0])
   const [selectedType, setSelectedType] = useState('Todos')
   const [maxHouseEdge, setMaxHouseEdge] = useState(5)
+  const [activeUserId, setActiveUserId] = useState(
+    () => window.localStorage.getItem('casinoUserId') ?? DEMO_USER_ID
+  )
+  const [creatingUser, setCreatingUser] = useState(false)
 
   useEffect(() => {
     const loadLobby = async () => {
@@ -49,7 +63,7 @@ function App() {
       try {
         const [gamesResponse, walletResponse] = await Promise.all([
           fetch(`${API_URL}/games`),
-          fetch(`${API_URL}/wallet/1`)
+          fetch(`${API_URL}/wallet/${activeUserId}`)
         ])
 
         if (!gamesResponse.ok || !walletResponse.ok) {
@@ -69,7 +83,7 @@ function App() {
     }
 
     void loadLobby()
-  }, [])
+  }, [activeUserId])
 
   const availableTypes = useMemo(() => ['Todos', ...new Set(games.map((game) => game.type))], [games])
 
@@ -86,6 +100,38 @@ function App() {
       return matchesSearch && matchesType && matchesEdge
     })
   }, [games, search, selectedType, maxHouseEdge])
+
+  const handleCreateUser = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setCreatingUser(true)
+    setError('')
+
+    const formData = new FormData(event.currentTarget)
+    const username = String(formData.get('username') || '').trim()
+    const email = String(formData.get('email') || '').trim()
+    const password = String(formData.get('password') || '').trim()
+    const countryCode = String(formData.get('countryCode') || '').trim().toUpperCase()
+
+    try {
+      const response = await fetch(`${API_URL}/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password, countryCode })
+      })
+
+      if (!response.ok) {
+        throw new Error('No se pudo crear el usuario. Revisa si ya existe.')
+      }
+
+      const data: RegistrationResult = await response.json()
+      window.localStorage.setItem('casinoUserId', data.id)
+      setActiveUserId(data.id)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo crear el usuario.')
+    } finally {
+      setCreatingUser(false)
+    }
+  }
 
   return (
     <main className="panel">
@@ -153,6 +199,20 @@ function App() {
             onChange={(event) => setSearch(event.target.value)}
           />
         </label>
+      </section>
+
+      <section className="filters">
+        <form onSubmit={handleCreateUser}>
+          <strong>Crear usuario rápido</strong>
+          <input name="username" placeholder="Usuario" required />
+          <input name="email" type="email" placeholder="correo@casino.dev" required />
+          <input name="password" type="password" placeholder="Contraseña" required />
+          <input name="countryCode" placeholder="ES" maxLength={2} required />
+          <button type="submit" disabled={creatingUser}>
+            {creatingUser ? 'Creando...' : 'Crear usuario'}
+          </button>
+          <small>Usuario activo: {activeUserId}</small>
+        </form>
       </section>
 
       {loading && <p className="feedback">Cargando lobby…</p>}

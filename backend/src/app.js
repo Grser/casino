@@ -4,6 +4,7 @@ const pool = require('./db/pool');
 const healthRoutes = require('./routes/health.routes');
 const gamesRoutes = require('./routes/games.routes');
 const walletRoutes = require('./routes/wallet.routes');
+const usersRoutes = require('./routes/users.routes');
 const { errorHandler } = require('./middleware/error-handler');
 
 const app = express();
@@ -25,6 +26,7 @@ app.use((req, res, next) => {
 app.use(healthRoutes);
 app.use(gamesRoutes);
 app.use(walletRoutes);
+app.use(usersRoutes);
 
 app.use(errorHandler);
 
