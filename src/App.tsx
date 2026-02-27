@@ -45,7 +45,17 @@ type RoundState = {
 const DEFAULT_API_URL = import.meta.env.DEV
   ? `${window.location.protocol}//${window.location.hostname}:3000`
   : '/api'
-const API_URL = import.meta.env.VITE_API_URL ?? DEFAULT_API_URL
+
+const API_BASE_URLS = [import.meta.env.VITE_API_URL, DEFAULT_API_URL, '/api', '']
+  .filter((url): url is string => Boolean(url))
+  .map((url) => (url === '/' ? '' : url.replace(/\/$/, '')))
+  .filter((url, index, arr) => arr.indexOf(url) === index)
+
+function isRetryableNetworkError(error: unknown) {
+  if (!(error instanceof TypeError)) return false
+  const message = error.message.toLowerCase()
+  return message.includes('failed to fetch') || message.includes('networkerror') || message.includes('load failed')
+}
 
 const tabs = ['Lobby', 'En vivo', 'Mesa', 'Cartas', 'Promociones', 'Historial']
 const SUITS = ['♠', '♥', '♦', '♣']
@@ -82,13 +92,26 @@ function drawCard() {
 }
 
 async function request(path: string, init?: RequestInit) {
-  const response = await fetch(`${API_URL}${path}`, init)
-  const data = await response.json().catch(() => ({}))
-  if (!response.ok) {
-    const msg = typeof data.error === 'string' ? data.error : 'Error de servidor'
-    throw new Error(msg)
+  let lastError: unknown = null
+
+  for (let i = 0; i < API_BASE_URLS.length; i += 1) {
+    const baseUrl = API_BASE_URLS[i]
+    try {
+      const response = await fetch(`${baseUrl}${path}`, init)
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        const msg = typeof data.error === 'string' ? data.error : 'Error de servidor'
+        throw new Error(msg)
+      }
+      return data
+    } catch (error) {
+      lastError = error
+      const canRetry = i < API_BASE_URLS.length - 1 && isRetryableNetworkError(error)
+      if (!canRetry) throw error
+    }
   }
-  return data
+
+  throw lastError instanceof Error ? lastError : new Error('No se pudo contactar la API.')
 }
 
 function App() {
