@@ -25,6 +25,8 @@ type Wallet = {
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 
+const tabs = ['Inventario', 'Misiones', 'Recarga', 'Sistema de afiliados', 'Configuraciones', 'Historial']
+
 function formatMoney(cents: number, currency = 'USD') {
   return new Intl.NumberFormat('es-ES', { style: 'currency', currency }).format(cents / 100)
 }
@@ -34,7 +36,8 @@ function App() {
   const [wallet, setWallet] = useState<Wallet | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [selectedGame, setSelectedGame] = useState<Game | null>(null)
+  const [search, setSearch] = useState('')
+  const [activeTab, setActiveTab] = useState(tabs[0])
 
   useEffect(() => {
     const loadLobby = async () => {
@@ -47,12 +50,8 @@ function App() {
           fetch(`${API_URL}/wallet/1`)
         ])
 
-        if (!gamesResponse.ok) {
-          throw new Error('No se pudieron cargar los juegos. Revisa que el backend esté activo.')
-        }
-
-        if (!walletResponse.ok) {
-          throw new Error('No se pudo cargar la cartera del jugador. Verifica la base de datos y el seed.')
+        if (!gamesResponse.ok || !walletResponse.ok) {
+          throw new Error('No se pudo conectar con el backend del casino.')
         }
 
         const gamesData: Game[] = await gamesResponse.json()
@@ -60,9 +59,8 @@ function App() {
 
         setGames(gamesData)
         setWallet(walletData)
-        setSelectedGame(gamesData[0] ?? null)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error desconocido cargando el lobby.')
+        setError(err instanceof Error ? err.message : 'Error desconocido cargando el panel.')
       } finally {
         setLoading(false)
       }
@@ -71,83 +69,81 @@ function App() {
     void loadLobby()
   }, [])
 
-  const totalVariants = useMemo(
-    () => games.reduce((total, game) => total + game.variants.length, 0),
-    [games]
-  )
+  const filteredGames = useMemo(() => {
+    if (!search.trim()) return games
+    const term = search.toLowerCase()
+    return games.filter((game) => game.name.toLowerCase().includes(term) || game.type.toLowerCase().includes(term))
+  }, [games, search])
 
   return (
-    <main className="lobby">
-      <header className="topbar">
-        <div>
-          <p className="brand">ROYAL JACKPOT</p>
-          <h1>Lobby principal del casino</h1>
-        </div>
-
-        <div className="wallet">
-          <span>Cartera</span>
-          <strong>{wallet ? formatMoney(wallet.balanceCents, wallet.currency) : '---'}</strong>
+    <main className="panel">
+      <header className="top-nav">
+        <div className="logo">keydrop</div>
+        <nav>
+          <a href="#">Get Free</a>
+          <a href="#">Giveaways</a>
+          <a href="#">Skin Changer</a>
+          <a href="#">Upgrader</a>
+          <a href="#">Case Battle</a>
+        </nav>
+        <div className="wallet-strip">
+          <div>
+            <small>Saldo de la cartera</small>
+            <strong>{wallet ? formatMoney(wallet.balanceCents, wallet.currency) : '---'}</strong>
+          </div>
         </div>
       </header>
 
-      <section className="hero">
-        <div>
-          <p className="pill">En vivo</p>
-          <h2>Entra a tus mesas y juegos en 1 clic</h2>
-          <p className="subtitle">
-            Un main claro para acceder a ruleta, blackjack, slots y variantes activas.
-          </p>
-          <button className="primary" disabled={!selectedGame}>
-            {selectedGame ? `Entrar a ${selectedGame.name}` : 'Selecciona un juego'}
-          </button>
-        </div>
+      <section className="hero-band" />
 
-        <div className="hero-stats">
-          <article>
-            <span>Juegos activos</span>
-            <strong>{games.length}</strong>
-          </article>
-          <article>
-            <span>Variantes</span>
-            <strong>{totalVariants}</strong>
-          </article>
-          <article>
-            <span>Backend</span>
-            <strong>{error ? 'Con errores' : 'Conectado'}</strong>
-          </article>
+      <section className="profile-card">
+        <img src="https://i.pravatar.cc/120?img=12" alt="avatar" className="avatar" />
+        <div className="profile-meta">
+          <h1>Jugador Casino</h1>
+          <p className="rank">BRONZE IV · Siguiente rango en progreso</p>
+          <p className="trade-link">https://steamcommunity.com/tradeoffer/new/?partner=CASINO&amp;token=123</p>
+        </div>
+        <div className="coins-box">
+          <small>Monedas</small>
+          <strong>{wallet ? Math.floor(wallet.balanceCents / 100) : 0}</strong>
         </div>
       </section>
 
-      {loading && <p className="feedback">Cargando lobby…</p>}
+      <section className="tabs-row">
+        {tabs.map((tab) => (
+          <button
+            key={tab}
+            className={tab === activeTab ? 'tab active' : 'tab'}
+            onClick={() => setActiveTab(tab)}
+          >
+            {tab}
+          </button>
+        ))}
+      </section>
+
+      <section className="filters">
+        <input placeholder="Tipo de juego" />
+        <input placeholder="Clasificación" />
+        <input
+          placeholder="Búsqueda"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </section>
+
+      {loading && <p className="feedback">Cargando panel…</p>}
       {error && <p className="feedback error">{error}</p>}
 
       {!loading && !error && (
-        <section className="games-grid">
-          {games.map((game) => (
-            <article
-              key={game.id}
-              className={`game-card ${selectedGame?.id === game.id ? 'selected' : ''}`}
-              onClick={() => setSelectedGame(game)}
-            >
-              <div className="game-head">
-                <p>{game.type}</p>
-                <span>{game.variants.length} variantes</span>
-              </div>
+        <section className="inventory-grid">
+          {filteredGames.map((game) => (
+            <article key={game.id} className="item-card">
               <h3>{game.name}</h3>
-              <p className="code">Código: {game.code}</p>
-              <ul>
-                {game.variants.slice(0, 3).map((variant) => (
-                  <li key={variant.id}>
-                    <span>{variant.name}</span>
-                    <small>
-                      {formatMoney(variant.minBetCents)} - {formatMoney(variant.maxBetCents)}
-                    </small>
-                  </li>
-                ))}
-              </ul>
-              <button className="ghost">Entrar ahora</button>
+              <p>{game.type}</p>
+              <small>{game.variants.length} variantes</small>
             </article>
           ))}
+          {filteredGames.length === 0 && <p className="feedback">No hay juegos para ese filtro.</p>}
         </section>
       )}
     </main>
