@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: casino-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: casino_db
+      POSTGRES_USER: casino_user
+      POSTGRES_PASSWORD: casino_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - casino_db_data:/var/lib/postgresql/data
+
+volumes:
+  casino_db_data:
