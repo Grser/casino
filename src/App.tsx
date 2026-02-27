@@ -32,7 +32,7 @@ type RegistrationResult = {
   wallet: Wallet
 }
 
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 const DEMO_USER_ID = '11111111-1111-1111-1111-111111111111'
 
 const tabs = ['Lobby', 'En vivo', 'Mesa', 'Cartas', 'Promociones', 'Historial']
