@@ -106,7 +106,7 @@ function App() {
   const [loggingIn, setLoggingIn] = useState(false)
   const [cashAction, setCashAction] = useState<'deposit' | 'withdraw'>('deposit')
   const [cashLoading, setCashLoading] = useState(false)
-  const [view, setView] = useState<'lobby' | 'blackjack'>('lobby')
+  const [view, setView] = useState<'lobby' | 'blackjack' | 'auth'>('lobby')
   const [round, setRound] = useState<RoundState | null>(null)
 
   const activeUser = users.find((user) => user.id === activeUserId) ?? null
@@ -322,9 +322,12 @@ function App() {
           <button onClick={() => setView('lobby')}>Lobby</button>
           <button onClick={() => setView('blackjack')}>Blackjack</button>
         </nav>
-        <div className="wallet-strip">
-          <small>Usuario activo: {activeUser?.username ?? 'Sin sesión'}</small>
-          <strong>{wallet ? formatMoney(wallet.balanceCents, wallet.currency) : '---'}</strong>
+        <div className="top-nav-right">
+          <button className="auth-nav-btn" onClick={() => setView('auth')}>Login / Registro</button>
+          <div className="wallet-strip">
+            <small>Usuario activo: {activeUser?.username ?? 'Sin sesión'}</small>
+            <strong>{wallet ? formatMoney(wallet.balanceCents, wallet.currency) : '---'}</strong>
+          </div>
         </div>
       </header>
 
@@ -334,22 +337,6 @@ function App() {
       </section>
 
       <section className="filters users-grid">
-        <form onSubmit={handleLogin}>
-          <strong>Iniciar sesión</strong>
-          <input name="usernameOrEmail" placeholder="usuario o email" required />
-          <input name="password" type="password" placeholder="contraseña" required />
-          <button type="submit" disabled={loggingIn}>{loggingIn ? 'Entrando...' : 'Entrar'}</button>
-        </form>
-
-        <form onSubmit={handleCreateUser}>
-          <strong>Crear usuario</strong>
-          <input name="username" placeholder="Usuario" required />
-          <input name="email" type="email" placeholder="correo@casino.dev" required />
-          <input name="password" type="password" placeholder="Contraseña" required />
-          <input name="countryCode" placeholder="ES" maxLength={2} required />
-          <button type="submit" disabled={creatingUser}>{creatingUser ? 'Creando...' : 'Crear'}</button>
-        </form>
-
         <form onSubmit={handleCashAction}>
           <strong>Saldo</strong>
           <select value={cashAction} onChange={(event) => setCashAction(event.target.value as 'deposit' | 'withdraw')}>
@@ -365,6 +352,29 @@ function App() {
           </select>
         </form>
       </section>
+
+      {view === 'auth' && (
+        <section className="auth-page users-grid">
+          <h2>Acceso de usuario</h2>
+          <div className="filters auth-forms-grid">
+            <form onSubmit={handleLogin}>
+              <strong>Iniciar sesión</strong>
+              <input name="usernameOrEmail" placeholder="usuario o email" required />
+              <input name="password" type="password" placeholder="contraseña" required />
+              <button type="submit" disabled={loggingIn}>{loggingIn ? 'Entrando...' : 'Entrar'}</button>
+            </form>
+
+            <form onSubmit={handleCreateUser}>
+              <strong>Crear usuario</strong>
+              <input name="username" placeholder="Usuario" required />
+              <input name="email" type="email" placeholder="correo@casino.dev" required />
+              <input name="password" type="password" placeholder="Contraseña" required />
+              <input name="countryCode" placeholder="ES" maxLength={2} required />
+              <button type="submit" disabled={creatingUser}>{creatingUser ? 'Creando...' : 'Crear'}</button>
+            </form>
+          </div>
+        </section>
+      )}
 
       {view === 'lobby' && (
         <>
