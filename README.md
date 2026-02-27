@@ -26,6 +26,12 @@ Este repositorio contiene una **estructura inicial de backend** y una **base de 
 ├── database/
 │   ├── schema.sql
 │   └── seed.sql
+├── frontend/
+│   ├── package.json
+│   ├── index.html
+│   └── src/
+│       ├── App.tsx
+│       └── main.tsx
 ├── docker-compose.yml
 └── docs/
     └── architecture.md
@@ -75,6 +81,17 @@ npm run dev
 ```
 
 Servidor en: `http://localhost:3000`
+
+## 4) Ejecutar frontend (React + TypeScript + Vite 8)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Aplicación en: `http://localhost:5173`
+
 
 ## Endpoints de ejemplo
 
