@@ -45,7 +45,9 @@ Esto crea PostgreSQL en `localhost:5432` con:
 - User: `casino_user`
 - Password: `casino_pass`
 
-## 2) Crear esquema y datos iniciales
+## 2) Crear esquema y datos iniciales (SQL)
+
+Opción A: desde el contenedor de PostgreSQL.
 
 ```bash
 # Crear tablas
@@ -53,6 +55,14 @@ cat database/schema.sql | docker exec -i casino-db psql -U casino_user -d casino
 
 # Insertar datos base (juegos, mesas)
 cat database/seed.sql | docker exec -i casino-db psql -U casino_user -d casino_db
+```
+
+Opción B: desde el backend (ejecuta ambos scripts SQL automáticamente).
+
+```bash
+cd backend
+npm install
+npm run db:bootstrap
 ```
 
 ## 3) Ejecutar backend API
