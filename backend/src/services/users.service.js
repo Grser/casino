@@ -5,6 +5,49 @@ function buildPasswordHash(password) {
   return `plain:${password}`;
 }
 
+function validatePassword(password, passwordHash) {
+  return passwordHash === buildPasswordHash(password) || passwordHash === password;
+}
+
+async function listUsers() {
+  const { rows } = await pool.query(
+    `SELECT id, username, email, country_code, status, created_at
+     FROM users
+     ORDER BY created_at DESC;`
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    username: row.username,
+    email: row.email,
+    countryCode: row.country_code,
+    status: row.status,
+    createdAt: row.created_at
+  }));
+}
+
+async function authenticateUser({ usernameOrEmail, password }) {
+  const { rows } = await pool.query(
+    `SELECT id, username, email, country_code, password_hash
+     FROM users
+     WHERE username = $1 OR email = $1
+     LIMIT 1;`,
+    [usernameOrEmail]
+  );
+
+  if (rows.length === 0 || !validatePassword(password, rows[0].password_hash)) {
+    throw new Error('INVALID_CREDENTIALS');
+  }
+
+  const user = rows[0];
+  return {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    countryCode: user.country_code
+  };
+}
+
 async function createUserWithWallet({ username, email, password, countryCode, currency = 'EUR' }) {
   const client = await pool.connect();
 
@@ -63,5 +106,7 @@ async function createUserWithWallet({ username, email, password, countryCode, cu
 }
 
 module.exports = {
-  createUserWithWallet
+  createUserWithWallet,
+  listUsers,
+  authenticateUser
 };
